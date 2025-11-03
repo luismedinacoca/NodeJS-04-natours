@@ -105,9 +105,16 @@ Review outcomes:
 - browser: **http:licalhost:3000**
 
 
+## 📚 Lecture 051: APIs and RESTful API Design
+
+<img src="./img/section06-lecture051-001.png">
+<img src="./img/section06-lecture051-002.png">
+<img src="./img/section06-lecture051-003.png">
+<img src="./img/section06-lecture051-004.png">
+<img src="./img/section06-lecture051-005.png">
 
 
-
+## 📚 Lecture 05
 
 
 
