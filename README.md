@@ -114,7 +114,33 @@ Review outcomes:
 <img src="./img/section06-lecture051-005.png">
 
 
-## 📚 Lecture 05
+## 📚 Lecture 052: Starting Our API: Handling GET Requests
+
+```js
+const express = require('express');
+const app = express();
+const fs = require('fs');
+
+const tours  = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`, 'utf-8'));
+app.get('/api/v1/tours', (req, res) => {
+  res
+  .status(200)
+  .json({
+    status: 'Success',
+    results: tours.length,
+    data: {
+      tours:  tours,
+    }
+  })
+})
+
+const PORT = 3000;
+app.listen(PORT, () => console.log(`App is running on port ${PORT}`));
+```
+
+<img src="./img/section06-lecture052-001.png">
+
+
 
 
 
