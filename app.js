@@ -18,6 +18,32 @@ app.get('/api/v1/tours', (req, res) => {
   })
 })
 
+app.get('/api/v1/tours/:id', (req, res) => {
+  console.log("req.params: ", req.params);  // in order to obtain the `:id` value. {string}
+
+  // convert this id to a number:
+  console.log("typeof req.params.id: ", typeof req.params.id);
+  const id = req.params.id * 1;
+  console.log("typeof id: ", typeof id);
+
+  //if(id >= tours.length) {
+  if(!tour) {
+    return res.status(404).json({
+      status: 'failed',
+      message: `The ID: ${id} was not found on server 😪`
+    })
+  }
+
+  // find the tour with the given id:
+  const tour = tours.find(el => el.id === id);
+  res.status(200).json({
+    status: 'Success',
+    data: {
+      tour
+    }
+  })
+})
+
 app.post('/api/v1/tours', (req, res) => {
   // Generate new ID
   const newId = tours[tours.length - 1].id + 1;
