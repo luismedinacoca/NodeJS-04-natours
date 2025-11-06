@@ -1,10 +1,14 @@
 const express = require('express');
 const app = express();
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 
 // using middleware to parse the body of the request
 app.use(express.json());
 
+/**********************************\
+|****** GET ALL TOURS request *****|
+\**********************************/
 const tours  = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`, 'utf-8'));
 app.get('/api/v1/tours', (req, res) => {
   res
@@ -18,6 +22,9 @@ app.get('/api/v1/tours', (req, res) => {
   })
 })
 
+/***********************************\
+|***** GET A TOUR BY ID request ****|
+\***********************************/
 app.get('/api/v1/tours/:id', (req, res) => {
   console.log("req.params: ", req.params);  // in order to obtain the `:id` value. {string}
 
@@ -26,6 +33,9 @@ app.get('/api/v1/tours/:id', (req, res) => {
   const id = req.params.id * 1;
   console.log("typeof id: ", typeof id);
 
+  // find the tour with the given id:
+  const tour = tours.find(el => el.id === id);
+
   //if(id >= tours.length) {
   if(!tour) {
     return res.status(404).json({
@@ -33,9 +43,6 @@ app.get('/api/v1/tours/:id', (req, res) => {
       message: `The ID: ${id} was not found on server 😪`
     })
   }
-
-  // find the tour with the given id:
-  const tour = tours.find(el => el.id === id);
   res.status(200).json({
     status: 'Success',
     data: {
@@ -44,6 +51,51 @@ app.get('/api/v1/tours/:id', (req, res) => {
   })
 })
 
+
+/***********************************\
+|**** PATCH A TOUR BY ID request ***|
+\***********************************/
+app.patch('/api/v1/tours/:id', async (req, res) => {
+  try {
+    const { id } = req.params; // id  is a string
+    const updatedData = req.body;
+
+    const tour = tours.find(el => el.id === id * 1);
+    if (!tour) {
+      return res.status(404).json({
+        status: 'failed',
+        message: `The ID: ${id} was not found on server 😪`
+      });
+    }
+
+    const updatedTour = { ...tour, ...updatedData };
+    const tourIndex = tours.findIndex(el => el.id === id * 1);
+    tours[tourIndex] = updatedTour;
+
+    await fsPromises.writeFile(
+      `${__dirname}/dev-data/data/tours-simple.json`,
+      JSON.stringify(tours, null, 2)
+    );
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        tour: updatedTour
+      }
+    });
+  } catch (err) {
+    console.error('Error updating tour:', err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Something went wrong while updating the tour 🫤'
+    });
+  }
+});
+
+
+/************************************\
+|******** POST A TOUR request *******|
+\************************************/
 app.post('/api/v1/tours', (req, res) => {
   // Generate new ID
   const newId = tours[tours.length - 1].id + 1;

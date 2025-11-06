@@ -387,5 +387,50 @@ app.listen(PORT, () => console.log(`App is running on port ${PORT}`));
 ```
 
 
+## 📚 Lecture 055: Handling PATCH Requests
+
+```js
+app.patch('/api/v1/tours/:id', async (req, res) => {
+  try {
+    const { id } = req.params; // 👉🏽 id  is a string
+    const updatedData = req.body; // body from request
+
+    const tour = tours.find(el => el.id === id * 1);
+    if (!tour) {
+      return res.status(404).json({
+        status: 'failed',
+        message: `The ID: ${id} was not found on server 😪`
+      });
+    }
+
+    // update the tour with the new data:
+    const updatedTour = { ...tour, ...updatedData };
+    const tourIndex = tours.findIndex(el => el.id === id * 1);  // original id is string
+    tours[tourIndex] = updatedTour;
+
+    // write the updated tours array to the file
+    await fsPromises.writeFile(
+      `${__dirname}/dev-data/data/tours-simple.json`,
+      JSON.stringify(tours, null, 2)
+    );
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        tour: updatedTour
+      }
+    });
+  } catch (err) {
+    console.error('Error updating tour:', err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Something went wrong while updating the tour 🫤'
+    });
+  }
+});
+```
+
+
+
 ## 📚 Lecture 0
 ## 📚 Lecture 0
