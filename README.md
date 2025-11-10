@@ -430,6 +430,43 @@ app.patch('/api/v1/tours/:id', async (req, res) => {
 });
 ```
 
+## 📚 Lecture 056: Handling DELETE Request
+
+```js
+app.delete('/api/v1/tours/:id', async (req, res) => {
+  try {
+    const { id } = req.params; // id  is a string
+    // find the tour with the given id:
+    const tour = tours.find(el => el.id === id * 1);
+    // if the tour is not found, return a 404 error:
+    if (!tour) {
+      return res.status(404).json({
+        status: 'failed',
+        message: `The ID: ${id} was not found on server 😪`
+      });
+    }
+    // create a new array without the tour with the given id:
+    const newTours = tours.filter(el => el.id !== id * 1);
+    // write the new array to the file:
+    await fsPromises.writeFile(
+      `${__dirname}/dev-data/data/tours-simple.json`,
+      JSON.stringify(newTours, null, 2)
+    );
+    // send the response:
+    res.status(204).json({
+      status: 'success',
+      data: null
+    });
+  } catch (err) {
+    console.error('Error updating tour:', err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Something went wrong while updating the tour 🫤'
+    });
+  }
+});
+```
+
 
 
 ## 📚 Lecture 0
