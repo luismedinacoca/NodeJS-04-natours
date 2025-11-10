@@ -6,11 +6,10 @@ const fsPromises = require('fs').promises;
 // using middleware to parse the body of the request
 app.use(express.json());
 
-/**********************************\
-|****** GET ALL TOURS request *****|
-\**********************************/
-const tours  = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`, 'utf-8'));
-app.get('/api/v1/tours', (req, res) => {
+/******************************\
+|****** FUNCTIONs request *****|
+\******************************/
+const getAllTours =  (req, res) => {
   res
   .status(200)
   .json({
@@ -20,12 +19,9 @@ app.get('/api/v1/tours', (req, res) => {
       tours:  tours,
     }
   })
-})
+}
 
-/***********************************\
-|***** GET A TOUR BY ID request ****|
-\***********************************/
-app.get('/api/v1/tours/:id', (req, res) => {
+const getTour = (req, res) => {
   console.log("req.params: ", req.params);  // in order to obtain the `:id` value. {string}
 
   // convert this id to a number:
@@ -49,13 +45,9 @@ app.get('/api/v1/tours/:id', (req, res) => {
       tour
     }
   })
-})
+}
 
-
-/***********************************\
-|**** PATCH A TOUR BY ID request ***|
-\***********************************/
-app.patch('/api/v1/tours/:id', async (req, res) => {
+const updateTour = async (req, res) => {
   try {
     const { id } = req.params; // id  is a string
     const updatedData = req.body;
@@ -90,12 +82,9 @@ app.patch('/api/v1/tours/:id', async (req, res) => {
       message: 'Something went wrong while updating the tour 🫤'
     });
   }
-});
+}
 
-/************************************\
-|**** DELETE A TOUR BY ID request ***|
-\************************************/
-app.delete('/api/v1/tours/:id', async (req, res) => {
+const deleteTour = async (req, res) => {
   try {
     const { id } = req.params; // id  is a string
 
@@ -131,13 +120,9 @@ app.delete('/api/v1/tours/:id', async (req, res) => {
       message: 'Something went wrong while updating the tour 🫤'
     });
   }
-});
+}
 
-
-/************************************\
-|******** POST A TOUR request *******|
-\************************************/
-app.post('/api/v1/tours', (req, res) => {
+const createTour = (req, res) => {
   // Generate new ID
   const newId = tours[tours.length - 1].id + 1;
   const newTour = Object.assign({ id: newId}, req.body);
@@ -158,7 +143,18 @@ app.post('/api/v1/tours', (req, res) => {
       })
     }
   )
-})
+}
+
+
+const tours  = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`, 'utf-8'));
+//app.get('/api/v1/tours', getAllTours)
+//app.get('/api/v1/tours/:id', getTour);
+//app.patch('/api/v1/tours/:id', updateTour);
+//app.delete('/api/v1/tours/:id', deleteTour);
+//app.post('/api/v1/tours', createTour)
+
+app.route('/api/v1/tours').get(getAllTours).post(createTour);
+app.route('/api/v1/tours/:id').get(getTour).patch(updateTour).delete(deleteTour);
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`App is running on port ${PORT}`));
