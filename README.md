@@ -671,5 +671,313 @@ app.listen(PORT, () => console.log(`App is running on port ${PORT}`));
 
 <img src="./img/section06-lecture058-001.png">
 
+## 📚 Lecture 059: Creating Our Own Middleware
+
+### 1. Application level Middleware (Global)
+```js
+const express = require('express');
+const app = express();
+
+// Global Middleware
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.url}`);
+  next();
+});
+
+// Rutas
+app.get('/', (req, res) => res.send('Hello World'));
+```
+
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant ExpressApp
+    participant GlobalMiddleware
+    participant RootRoute
+
+    Client->>ExpressApp: GET request /
+    ExpressApp->>GlobalMiddleware: Execute global middleware
+    GlobalMiddleware->>GlobalMiddleware: Log `[GET] /`
+    GlobalMiddleware->>RootRoute: next() → Passes to the route
+    RootRoute->>RootRoute: Execute route handler (res.send("Hello World"))
+    RootRoute-->>ExpressApp: Return response
+    ExpressApp-->>Client: HTTP 200 OK "Hello World"
+
+```
+
+### 2. Router level (specific)
+
+```js
+const express = require('express');
+const router = express.Router();
+
+function verifyToken(req, res, next) {
+  if (!req.headers.authorization) {
+    return res.status(401).json({ mensaje: 'Unauthorized' });
+  }
+  next();
+}
+
+router.get('/profile', verifyToken, (req, res) => {
+  res.send('User profile');
+});
+
+module.exports = router;
+```
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant ExpressApp
+    participant ProfileRouter
+    participant MiddlewareVerifyToken
+    participant ProfileRoute
+
+    Client->>ExpressApp: GET request /profile
+    ExpressApp->>ProfileRouter: Redirects to /profile router
+    ProfileRouter->>MiddlewareVerifyToken: Executes verifyToken()
+    alt Missing Authorization header
+        MiddlewareVerifyToken-->>Client: HTTP 401 Unauthorized
+    else Authorization header present
+        MiddlewareVerifyToken->>ProfileRoute: next() → Passes to the route
+        ProfileRoute->>ProfileRoute: Executes handler (res.send("User profile"))
+        ProfileRoute-->>ProfileRouter: Returns response
+        ProfileRouter-->>ExpressApp: Response ready
+        ExpressApp-->>Client: HTTP 200 OK "User profile"
+    end
+
+```
+
+### 3. Individual route level
+
+```js
+app.get('/admin', verifyToken, (req, res) => {
+  res.send('welcome to Admin dashboard');
+});
+```
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant ExpressApp
+    participant MiddlewareVerifyToken
+    participant AdminRoute
+
+    Client->>ExpressApp: GET request /admin
+    ExpressApp->>MiddlewareVerifyToken: Executes verifyToken()
+    alt Missing or invalid Authorization header
+        MiddlewareVerifyToken-->>Client: HTTP 403 Unauthorized
+    else Valid Authorization header
+        MiddlewareVerifyToken->>AdminRoute: next() → Passes to the route
+        AdminRoute->>AdminRoute: Executes handler (res.send("Welcome to the admin panel"))
+        AdminRoute-->>ExpressApp: Returns response
+        ExpressApp-->>Client: HTTP 200 OK "Welcome to the admin panel"
+    end
+```
+
+### 4. All three middleware types. working together:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant ExpressApp
+    participant GlobalMiddleware
+    participant ProfileRouter
+    participant RouterMiddleware
+    participant ProfileRoute
+    participant RouteMiddleware
+    participant AdminRoute
+
+    %% --- GLOBAL FLOW ---
+    Client->>ExpressApp: HTTP Request (GET /profile or GET /admin)
+    ExpressApp->>GlobalMiddleware: Execute global middleware (app.use)
+    GlobalMiddleware->>GlobalMiddleware: Process req (e.g. logs, parsing)
+    GlobalMiddleware->>ExpressApp: next() → continues flow
+
+    %% --- FLOW FOR /profile ROUTE ---
+    alt /profile Route
+        ExpressApp->>ProfileRouter: Redirects to /profile router
+        ProfileRouter->>RouterMiddleware: Executes verifyToken()
+        alt Missing Authorization header
+            RouterMiddleware-->>Client: HTTP 401 Unauthorized
+        else Authorization header present
+            RouterMiddleware->>ProfileRoute: next() → passes to handler
+            ProfileRoute->>ProfileRoute: Executes handler (res.send("User profile"))
+            ProfileRoute-->>ProfileRouter: Returns response
+            ProfileRouter-->>ExpressApp: Response ready
+            ExpressApp-->>Client: HTTP 200 OK "User profile"
+        end
+    else /admin Route
+        ExpressApp->>RouteMiddleware: Executes verifyToken()
+        alt Invalid token
+            RouteMiddleware-->>Client: HTTP 403 Unauthorized
+        else Valid token
+            RouteMiddleware->>AdminRoute: next() → passes to handler
+            AdminRoute->>AdminRoute: Executes handler (res.send("Welcome to the admin panel"))
+            AdminRoute-->>ExpressApp: Returns response
+            ExpressApp-->>Client: HTTP 200 OK "Welcome to the admin panel"
+        end
+    end
+```
+
+### 5. Middleware with error handler:
+```mermaid
+sequenceDiagram
+    participant Client
+    participant ExpressApp
+    participant GlobalMiddleware
+    participant ProfileRouter
+    participant RouterMiddleware
+    participant ProfileRoute
+    participant RouteMiddleware
+    participant AdminRoute
+    participant ErrorMiddleware
+
+    %% --- STEP 1: Request Arrives ---
+    Client->>ExpressApp: (1) Send HTTP request (GET /profile or GET /admin)
+
+    %% --- STEP 2: Global Middleware ---
+    ExpressApp->>GlobalMiddleware: (2) Execute global middleware (app.use)
+    GlobalMiddleware->>GlobalMiddleware: Process req (e.g. logs, parsing, CORS)
+    GlobalMiddleware->>ExpressApp: next() → continue flow
+
+    %% --- STEP 3: Router or Route ---
+    alt /profile Route
+        ExpressApp->>ProfileRouter: (3) Enters /profile router
+        ProfileRouter->>RouterMiddleware: Executes verifyToken()
+        alt Missing Authorization header
+            RouterMiddleware->>ErrorMiddleware: (4) next(err) → 401 error
+            ErrorMiddleware->>ErrorMiddleware: (5) Handle global error
+            ErrorMiddleware-->>Client: (6) HTTP 401 Unauthorized
+        else Valid Authorization header
+            RouterMiddleware->>ProfileRoute: next() → pass to handler
+            ProfileRoute->>ProfileRoute: (4) Executes handler (res.send("User profile"))
+            ProfileRoute-->>ProfileRouter: Returns response
+            ProfileRouter-->>ExpressApp: Response ready
+            ExpressApp-->>Client: (6) HTTP 200 OK "User profile"
+        end
+    else /admin Route
+        ExpressApp->>RouteMiddleware: (3) Executes route-level verifyToken()
+        alt Invalid token
+            RouteMiddleware->>ErrorMiddleware: (4) next(err) → 403 error
+            ErrorMiddleware->>ErrorMiddleware: (5) Handle global error
+            ErrorMiddleware-->>Client: (6) HTTP 403 Unauthorized
+        else Valid token
+            RouteMiddleware->>AdminRoute: next() → pass to handler
+            AdminRoute->>AdminRoute: (4) Executes handler (res.send("Welcome to the admin panel"))
+            AdminRoute-->>ExpressApp: Returns response
+            ExpressApp-->>Client: (6) HTTP 200 OK "Welcome to the admin panel"
+        end
+    end
+
+    %% --- FINAL STEP: Global Error Middleware ---
+    note over ErrorMiddleware,Client: <b>(5)</b> The error-handling middleware (app.use((err, req, res, next) => {...}))<br>intercepts any exception thrown in previous middlewares or routes,<br>and returns a controlled response to the client.
+```
+
+| Step   | Stage                                      | Description                                                                                           | Example Middleware                                      |
+| ------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **1️⃣** | **Request**                                | The client sends an HTTP request (`GET /profile` or `GET /admin`)                                     | —                                                       |
+| **2️⃣** | **Global Middleware**                      | Runs for all routes. Example: `app.use(express.json())`, logs, CORS                                   | `app.use((req, res, next) => { ... })`                  |
+| **3️⃣** | **Router or Route**                        | Express determines whether the request belongs to a router or a specific route                        | `app.use('/profile', router)` or `app.get('/admin', ...)` |
+| **4️⃣** | **Authentication Middleware / Handler**     | Executes the router or route middleware. If successful → `next()` passes control to the final handler | `verifyToken()`                                         |
+| **5️⃣** | **Error Middleware**                       | If an error occurs or `next(err)` is called, control is redirected here                               | `app.use((err, req, res, next) => { ... })`             |
+| **6️⃣** | **Client Response**                        | Express sends the response back to the client (success or error)                                      | `res.send()` or `res.status(401)`                       |
+
+
+### 6.Middleware Order:
+
+#### 🧩 1. Middleware order in Express matters — a lot
+
+Express executes middleware in the exact order they are declared in your code. 
+So if you declare a middleware after your routes, like this:
+
+```js
+const express = require('express');
+const app = express();
+
+app.get('/hello', (req, res) => {
+  res.send('Hello world');
+});
+
+// Middleware declared AFTER route
+app.use((req, res, next) => {
+  console.log('This will never run for /hello');
+  next();
+});
+```
+
+👉 The middleware won’t run for `/hello`, because the route already sent a response.
+Express stops looking for more middleware once a response has been sent (or a matching route is completed).
+
+
+#### ⚙️ 2. Middleware after routers still runs — but only for next routes
+```js
+app.use('/users', userRouter);
+
+// Middleware declared after router
+app.use((req, res, next) => {
+  console.log('Runs after /users router');
+  next();
+});
+
+app.use('/admin', adminRouter);
+```
+
+🧠 What happens here:
+
+The middleware declared after /users runs for any request that hasn’t already been handled by /users.
+
+So, for /users/profile, it won’t run (the router handled it).
+
+But for /admin/dashboard, it will run, because Express processes middleware in sequence.
+
+
+#### 🚫 3. Middleware after a route does NOT affect that route
+
+If you do:
+```js
+app.get('/dashboard', (req, res) => {
+  res.send('Dashboard');
+});
+
+app.use((req, res, next) => {
+  console.log('After dashboard');
+  next();
+});
+```
+The middleware will never run for /dashboard, because Express already returned a response before it got there.
+
+#### ✅ 4. Correct placement
+
+Always place:
+
+Global middleware (like logging, body parsing, CORS, authentication) → at the top of your file (before any routes).
+
+Router-level middleware → inside routers (router.use(...)).
+
+Error-handling middleware → at the very end of your app.
+
+```js
+app.use(express.json()); // Global middleware
+
+app.use('/users', userRouter); // Router-level middleware
+
+app.use((err, req, res, next) => { // Error middleware
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
+```
+
+| Case                         | Middleware placement                         | Behavior                                  |
+| ----------------------------- | -------------------------------------------- | ----------------------------------------- |
+| **Before routes**            | ✅ Runs for all routes declared after it      | Used for parsing, logging, auth, etc.     |
+| **After a specific route**   | 🚫 Doesn’t affect that route (it’s too late) | Route already responded                   |
+| **Between routers**          | ⚙️ Runs only for subsequent routers          | Useful for conditional or segmented logic |
+| **At the end (with 4 args)** | ✅ Acts as error handler                      | Catches `next(err)` or thrown errors      |
+
+
+
+
 ## 📚 Lecture 0
 ## 📚 Lecture 0
