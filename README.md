@@ -667,5 +667,9 @@ app.listen(PORT, () => console.log(`App is running on port ${PORT}`));
 ```
 
 
+## 📚 Lecture 058: Middleware and the Request-Response Cycle
+
+<img src="./img/section06-lecture058-001.png">
+
 ## 📚 Lecture 0
 ## 📚 Lecture 0

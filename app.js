@@ -150,7 +150,7 @@ const tours  = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simp
 //app.get('/api/v1/tours', getAllTours)
 //app.get('/api/v1/tours/:id', getTour);
 //app.patch('/api/v1/tours/:id', updateTour);
-//app.delete('/api/v1/tours/:id', deleteTour);
+//app.delete('/api/v1/tours/:id', deleteTour);i
 //app.post('/api/v1/tours', createTour)
 
 app.route('/api/v1/tours').get(getAllTours).post(createTour);
