@@ -1,10 +1,17 @@
-const express = require('express');
-const app = express();
 const fs = require('fs');
+const express = require('express');
+const morgan = require('morgan');
+const app = express();
 const fsPromises = require('fs').promises;
+
+// MIDDLEWARES
+app.use(morgan('dev'));
 
 // using middleware to parse the body of the request
 app.use(express.json());
+
+
+// ROUTE HANDLERS
 
 /******************************\
 |****** FUNCTIONs request *****|
@@ -153,8 +160,14 @@ const tours  = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simp
 //app.delete('/api/v1/tours/:id', deleteTour);i
 //app.post('/api/v1/tours', createTour)
 
+
+//  ROUTES
 app.route('/api/v1/tours').get(getAllTours).post(createTour);
 app.route('/api/v1/tours/:id').get(getTour).patch(updateTour).delete(deleteTour);
+
+
+
+// START SERVER
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`App is running on port ${PORT}`));

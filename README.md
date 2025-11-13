@@ -977,6 +977,266 @@ app.use((err, req, res, next) => { // Error middleware
 | **At the end (with 4 args)** | ✅ Acts as error handler                      | Catches `next(err)` or thrown errors      |
 
 
+## 📚 Lecture 060: Using 3rd-Party Middleware
+
+### 1. Installing **`morgan`** middlewaare:
+```bash
+npm i morgan
+```
+
+### 2. Sort our code in:
+```js
+const fs = require('fs');
+const express = require('express');
+const morgan = require('morgan');
+const app = express();
+const fsPromises = require('fs').promises;
+
+/**************************\
+|****** 1️⃣ MIDDLEWARES *****|
+\**************************/
+app.use(morgan('dev'));
+// using middleware to parse the body of the request
+app.use(express.json());
+
+/******************************\
+|****** 2️⃣ ROUTES HANDLERS *****|
+\******************************/
+const getAllTours =  (req, res) => {
+  res
+  .status(200)
+  .json({
+    status: 'Success',
+    results: tours.length,
+    data: {
+      tours:  tours,
+    }
+  })
+}
+const getTour = (req, res) => {
+  console.log("req.params: ", req.params);  // in order to obtain the `:id` value. {string}
+  // convert this id to a number:
+  console.log("typeof req.params.id: ", typeof req.params.id);
+  const id = req.params.id * 1;
+  console.log("typeof id: ", typeof id);
+  // find the tour with the given id:
+  const tour = tours.find(el => el.id === id);
+  //if(id >= tours.length) {
+  if(!tour) {
+    return res.status(404).json({
+      status: 'failed',
+      message: `The ID: ${id} was not found on server 😪`
+    })
+  }
+  res.status(200).json({
+    status: 'Success',
+    data: {
+      tour
+    }
+  })
+}
+const updateTour = async (req, res) => {
+  try {
+    const { id } = req.params; // id  is a string
+    const updatedData = req.body;
+
+    const tour = tours.find(el => el.id === id * 1);
+    if (!tour) {
+      return res.status(404).json({
+        status: 'failed',
+        message: `The ID: ${id} was not found on server 😪`
+      });
+    }
+    const updatedTour = { ...tour, ...updatedData };
+    const tourIndex = tours.findIndex(el => el.id === id * 1);
+    tours[tourIndex] = updatedTour;
+    await fsPromises.writeFile(
+      `${__dirname}/dev-data/data/tours-simple.json`,
+      JSON.stringify(tours, null, 2)
+    );
+    res.status(200).json({
+      status: 'success',
+      data: {
+        tour: updatedTour
+      }
+    });
+  } catch (err) {
+    console.error('Error updating tour:', err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Something went wrong while updating the tour 🫤'
+    });
+  }
+}
+const deleteTour = async (req, res) => {
+  try {
+    const { id } = req.params; // id  is a string
+    // find the tour with the given id:
+    const tour = tours.find(el => el.id === id * 1);
+    // if the tour is not found, return a 404 error:
+    if (!tour) {
+      return res.status(404).json({
+        status: 'failed',
+        message: `The ID: ${id} was not found on server 😪`
+      });
+    }
+    // create a new array without the tour with the given id:
+    const newTours = tours.filter(el => el.id !== id * 1);
+    // write the new array to the file:
+    await fsPromises.writeFile(
+      `${__dirname}/dev-data/data/tours-simple.json`,
+      JSON.stringify(newTours, null, 2)
+    );
+    // send the response:
+    res.status(204).json({
+      status: 'success',
+      data: null
+    });
+  } catch (err) {
+    console.error('Error updating tour:', err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Something went wrong while updating the tour 🫤'
+    });
+  }
+}
+const createTour = (req, res) => {
+  // Generate new ID
+  const newId = tours[tours.length - 1].id + 1;
+  const newTour = Object.assign({ id: newId}, req.body);
+  console.log("newTour: ", newTour)
+  //Add newTour to the tour array:
+  tours.push(newTour);
+  // Write the updated tours array to the file:
+  fs.writeFile(
+    `${__dirname}/dev-data/data/tours-simple.json`,
+    JSON.stringify(tours),
+    err => {
+      res.status(201).json({
+        status: 'success',
+        data: {
+          tour: newTour,
+        }
+      })
+    }
+  )
+}
+
+const tours  = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`, 'utf-8'));
+
+/*********************\
+|****** 3️⃣ ROUTES *****|
+\*********************/
+app.route('/api/v1/tours').get(getAllTours).post(createTour);
+app.route('/api/v1/tours/:id').get(getTour).patch(updateTour).delete(deleteTour);
+
+/***************************\
+|****** 4️⃣ START SERVER *****|
+\***************************/
+const PORT = 3000;
+app.listen(PORT, () => console.log(`App is running on port ${PORT}`));
+```
+
+### 3. Making some requests:
+
+- Method: **`GET`**
+- URL: `http://localhost:3000/api/v1/tours`
+- Status Response: `200`
+- Response:
+  ```json
+  {
+      "status": "Success",
+      "results": 16,
+      "data": {
+          "tours": [
+              {
+                  "id": 0,
+                  "name": "The Forest Hiker",
+                  "duration": 5,
+                  "maxGroupSize": 25,
+                  "difficulty": "easy",
+                  "ratingsAverage": 4.7,
+                  "ratingsQuantity": 37,
+                  "price": 397,
+                  "summary": "Breathtaking hike through the Canadian Banff National Park",
+                  "description": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.\nLorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+                  "imageCover": "tour-1-cover.jpg",
+                  "images": [
+                      "tour-1-1.jpg",
+                      "tour-1-2.jpg",
+                      "tour-1-3.jpg"
+                  ],
+                  "startDates": [
+                      "2021-04-25,10:00",
+                      "2021-07-20,10:00",
+                      "2021-10-05,10:00"
+                  ]
+              },
+              {
+                  "id": 2,
+                  "name": "The Snow Adventurer",
+                  "duration": 4,
+                  "maxGroupSize": 10,
+                  "difficulty": "difficult",
+                  "ratingsAverage": 4.5,
+                  "ratingsQuantity": 13,
+                  "price": 997,
+                  "summary": "Exciting adventure in the snow with snowboarding and skiing",
+                  "description": "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua, ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum!\nDolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur, exercitation ullamco laboris nisi ut aliquip. Lorem ipsum dolor sit amet, consectetur adipisicing elit!",
+                  "imageCover": "tour-3-cover.jpg",
+                  "images": [
+                      "tour-3-1.jpg",
+                      "tour-3-2.jpg",
+                      "tour-3-3.jpg"
+                  ],
+                  "startDates": [
+                      "2022-01-05,10:00",
+                      "2022-02-12,10:00",
+                      "2023-01-06,10:00"
+                  ]
+              },
+              ...
+              {
+                  "id": 16,
+                  "name": "The Sea Explorer",
+                  "duration": 9,
+                  "maxGroupSize": 15,
+                  "difficulty": "easy",
+                  "ratingsAverage": 4.8,
+                  "ratingsQuantity": 23,
+                  "price": 497,
+                  "summary": "Exploring the jaw-dropping US east coast by foot and by boat",
+                  "description": "Consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\nIrure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+                  "imageCover": "tour-2-cover.jpg",
+                  "images": [
+                      "tour-2-1.jpg",
+                      "tour-2-2.jpg",
+                      "tour-2-3.jpg"
+                  ],
+                  "startDates": [
+                      "2021-06-19,10:00",
+                      "2021-07-20,10:00",
+                      "2021-08-18,10:00"
+                  ]
+              }
+          ]
+      }
+  }
+  ```
+  <img src="./img/section06-lecture060-001.png">
+
+
+- Method: **`GET`**
+- URL: `http://localhost:3000/api/v1/tours/17`
+- Status Response: `404`
+- Response:
+  ```json
+  {
+      "status": "failed",
+      "message": "The ID: 17 was not found on server 😪"
+  }
+  ```
+  <img src="./img/section06-lecture060-002.png">
 
 
 ## 📚 Lecture 0
