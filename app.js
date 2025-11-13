@@ -4,17 +4,17 @@ const morgan = require('morgan');
 const app = express();
 const fsPromises = require('fs').promises;
 
-// MIDDLEWARES
-app.use(morgan('dev'));
 
+/**************************\
+|****** 1️⃣ MIDDLEWARES *****|
+\**************************/
+app.use(morgan('dev'));
 // using middleware to parse the body of the request
 app.use(express.json());
 
 
-// ROUTE HANDLERS
-
 /******************************\
-|****** FUNCTIONs request *****|
+|****** 2️⃣ ROUTES HANDLERS *****|
 \******************************/
 const getAllTours =  (req, res) => {
   res
@@ -152,22 +152,68 @@ const createTour = (req, res) => {
   )
 }
 
+const getAllUsers =  (req, res) => {
+  res
+  .status(500)
+  .json({
+    status: 'error',
+    mesage: "This route is not yet defined! 🫤" 
+  })
+}
+
+const createUser =  (req, res) => {
+  res
+  .status(500)
+  .json({
+    status: 'error',
+    mesage: "This route is not yet defined! 🫤" 
+  })
+}
+
+const getUser =  (req, res) => {
+  res
+  .status(500)
+  .json({
+    status: 'error',
+    mesage: "This route is not yet defined! 🫤" 
+  })
+}
+
+const updateUser =  (req, res) => {
+  res
+  .status(500)
+  .json({
+    status: 'error',
+    mesage: "This route is not yet defined! 🫤" 
+  })
+}
+
+const deleteUser =  (req, res) => {
+  res
+  .status(500)
+  .json({
+    status: 'error',
+    mesage: "This route is not yet defined! 🫤" 
+  })
+}
+
 
 const tours  = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`, 'utf-8'));
-//app.get('/api/v1/tours', getAllTours)
-//app.get('/api/v1/tours/:id', getTour);
-//app.patch('/api/v1/tours/:id', updateTour);
-//app.delete('/api/v1/tours/:id', deleteTour);i
-//app.post('/api/v1/tours', createTour)
 
 
-//  ROUTES
+/*********************\
+|****** 3️⃣ ROUTES *****|
+\*********************/
 app.route('/api/v1/tours').get(getAllTours).post(createTour);
 app.route('/api/v1/tours/:id').get(getTour).patch(updateTour).delete(deleteTour);
 
+app.route('/api/v1/users').get(getAllUsers).post(createUser);
+app.route('/api/v1/users/:id').get(getUser).patch(updateUser).delete(deleteUser);
 
 
-// START SERVER
 
+/***************************\
+|****** 4️⃣ START SERVER *****|
+\***************************/
 const PORT = 3000;
 app.listen(PORT, () => console.log(`App is running on port ${PORT}`));
