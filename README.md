@@ -1464,6 +1464,51 @@ app.listen(PORT, () => console.log(`App is running on port ${PORT}`));
 
 ## 📚 Lecture 062: Creating and Mounting Multiple Routers
 
+### 1. Create one separate Router for each Tour and User entity:
+Having this:
+```js
+/* app.js */
+/*********************\
+|****** 3️⃣ ROUTES *****|
+\*********************/
+app.route('/api/v1/tours').get(getAllTours).post(createTour);
+app.route('/api/v1/tours/:id').get(getTour).patch(updateTour).delete(deleteTour);
+
+app.route('/api/v1/users').get(getAllUsers).post(createUser);
+app.route('/api/v1/users/:id').get(getUser).patch(updateUser).delete(deleteUser);
+```
+
+update for:
+```js
+/*********************\
+|****** 3️⃣ ROUTES *****|
+\*********************/
+const tourRouter = express.Router(); // a real middleware
+tourRouter
+  .route('/')
+  .get(getAllTours)
+  .post(createTour);
+tourRouter
+  .route('/:id')
+  .get(getTour)
+  .patch(updateTour)
+  .delete(deleteTour);
+
+const userRouter = express.Router();
+userRouter
+  .route('/')
+  .get(getAllUsers)
+  .post(createUser);
+userRouter
+  .route('/:id')
+  .get(getUser)
+  .patch(updateUser)
+  .delete(deleteUser);
+
+app.use('/api/v1/tours', tourRouter);
+app.use('/api/v1/users', userRouter);
+```
+
 
 
 
